@@ -13,11 +13,13 @@ def getSolutions(searchPath):
     solutionFiles = []
 
     for file in os.listdir(searchPath):
-        if file.endswith(".sln"):
-            solutionFiles.append(os.path.join(searchPath, file))
-        elif os.path.isdir(searchPath + file) :
-            subpath = os.path.join(searchPath, file)
-            solutionFiles = solutionFiles + getSolutions(subpath)
+        if not file.startswith('.') and not file == "packages" and not file == "bin" and not file == "obj":
+
+            if file.endswith(".sln"):
+                solutionFiles.append(os.path.join(searchPath, file))
+            elif os.path.isdir(os.path.join(searchPath, file)) :
+                subpath = os.path.join(searchPath, file)
+                solutionFiles = solutionFiles + getSolutions(subpath)
 
     return (solutionFiles)
 
@@ -41,8 +43,8 @@ def findExternalReferences(solution):
 
                 # print("Project {0} is located to {1}".format(projectName, projectFullPath))
 
-                if projectPath.startswith("../"):
-                    externalReferences.append(projectPath)
+                if projectPath.startswith(".." + os.sep):
+                    externalReferences.append(os.path.dirname(projectPath) + os.sep)
             
             return (externalReferences)
 
@@ -54,7 +56,6 @@ def findExternalReferences(solution):
 ##############################################################################
 ### Main #####################################################################
 ##############################################################################
-print("Running")
 if not len(sys.argv) == 2:
     print ("usage:\n\t" + sys.argv[0] + " <path-to-analyse>\n\n")
     exit()
@@ -71,18 +72,23 @@ if (not os.path.isdir(searchPath)):
     print ("{0} directory not found.".format(searchPath))
     exit()
 
-print("Search for solutions in {0}".format(searchPath))
-
 solutions = getSolutions(searchPath)
 
 for solution in solutions:
-    print("Solution found : {0}".format(solution))
+
     externalDependencies = findExternalReferences(solution)
 
-    if len(externalDependencies) == 0:
-        print("No external dependencies")
-    else:
-        print("Triggers for solution {0}".format(os.path.basename(solution)))
+    if len(externalDependencies) >= 1:
+        originalTrigger = os.path.dirname(solution).replace(searchPath, os.sep).replace('\\','/')
+
+        print("{0}".format(solution))
+        triggers = []
+        triggers.append(originalTrigger + "/*")
         for externalDependency in externalDependencies:
-            print(externalDependency)
-        
+            workingDir = os.path.dirname(solution)
+            buildedDepPath = os.path.abspath(os.path.join(workingDir, externalDependency))
+            trigger = "/" + buildedDepPath.replace(searchPath, "").replace(os.sep, "/") + "/"
+            print("\t{0}".format(trigger))
+            triggers.append(trigger + "*")
+
+        print("\nIC triggers:\n{0}\n\n".format(';'.join(triggers)))
