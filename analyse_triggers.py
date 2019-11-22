@@ -75,18 +75,21 @@ solutions = getSolutions(searchPath)
 for solution in solutions:
 
     externalDependencies = findExternalReferences(solution)
-
+    originalTrigger = os.path.dirname(solution).replace(searchPath, os.sep).replace('\\','/')
+    triggers = []
+    triggers.append(originalTrigger + "/*")
+    print("################### {0} ###################".format(os.path.basename(solution)))
+    
     if len(externalDependencies) >= 1:
-        originalTrigger = os.path.dirname(solution).replace(searchPath, os.sep).replace('\\','/')
-
-        print("{0}".format(solution))
-        triggers = []
-        triggers.append(originalTrigger + "/*")
+        print("[[ CI TRIGGER ]]\n")
         for externalDependency in externalDependencies:
             workingDir = os.path.dirname(solution)
             buildedDepPath = os.path.abspath(os.path.join(workingDir, externalDependency))
             trigger = "/" + buildedDepPath.replace(searchPath, "").replace(os.sep, "/") + "/"
             print("\t{0}".format(trigger))
             triggers.append(trigger + "*")
+        print("\n")
 
-        print("\nIC triggers:\n{0}\n\n".format(';'.join(triggers)))
+    print("[[ BRANCH POLICY TRIGGER ]]\n")
+    print("{0}\n".format(';'.join(triggers)))
+    print("-- END --\n\n")
